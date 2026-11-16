@@ -114,6 +114,7 @@
     .missed-question h4 { font-size: 14px; line-height: 1.5; margin: 0 0 9px; }
     .missed-question p { margin: 4px 0 0; font-size: 12px; }
     .missed-question .explanation { border-top: 1px solid var(--line); margin-top: 9px; padding-top: 9px; }
+    .copy-fallback { width: 100%; min-height: 72px; resize: vertical; border: 1px solid var(--line); border-radius: 10px; padding: 10px; color: var(--text); background: var(--option); font: inherit; }
     .question-panel { animation: appear .3s ease; }
     @keyframes star-field-twinkle { from { opacity: .35; } to { opacity: .8; } }
     @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
@@ -223,6 +224,9 @@
             <p id="no-missed-questions" role="status" hidden></p>
             <ol class="missed-questions" id="missed-questions"></ol>
           </section>
+          <button type="button" class="next" id="copy-result"><span>Copy result</span><span aria-hidden="true">&#10697;</span></button>
+          <p id="copy-status" role="status" aria-live="polite"></p>
+          <textarea id="copy-fallback" class="copy-fallback" aria-label="Quiz result to copy manually" readonly hidden></textarea>
           <button type="button" class="next" id="restart"><span>Explore again</span><span aria-hidden="true">&#8635;</span></button>
           <p class="card-footer">Every great explorer starts with curiosity.</p>
         </div>
@@ -377,11 +381,30 @@
       $("result-title").focus({ preventScroll: true });
     }
 
+    async function copyResult() {
+      const result = `I scored ${score} out of ${questions.length} on the Space Exploration Quiz!`;
+      const fallback = $("copy-fallback");
+      fallback.hidden = true;
+      try {
+        const clipboard = typeof navigator === "undefined" ? null : navigator.clipboard;
+        if (!clipboard || typeof clipboard.writeText !== "function") throw new Error("Clipboard unavailable");
+        await clipboard.writeText(result);
+        $("copy-status").textContent = "Result copied to clipboard.";
+      } catch {
+        $("copy-status").textContent = "Couldn't copy automatically. Select the result below and copy it manually.";
+        fallback.value = result;
+        fallback.hidden = false;
+        fallback.focus();
+        fallback.select();
+      }
+    }
+
     $("next").addEventListener("click", () => {
       if (!answered) return;
       if (current === questions.length - 1) showResults();
       else { current++; renderQuestion(true); }
     });
+    $("copy-result").addEventListener("click", copyResult);
     $("restart").addEventListener("click", () => {
       attemptQuestions = shuffleQuestions();
       current = 0;
@@ -391,6 +414,9 @@
       $("missed-questions").hidden = false;
       $("no-missed-questions").hidden = true;
       $("score").textContent = "0 points";
+      $("copy-status").textContent = "";
+      $("copy-fallback").value = "";
+      $("copy-fallback").hidden = true;
       $("results").hidden = true;
       $("results").classList.remove("celebration");
       $("result-eyebrow").textContent = "MISSION COMPLETE";

@@ -30,11 +30,12 @@ class Element {
   addEventListener(name, listener) { this.listeners[name] = listener; }
   append(...children) { this.children.push(...children); }
   replaceChildren(...children) { this.text = ""; this.children = children; }
-  focus() {}
-  click() { if (!this.disabled && this.listeners.click) this.listeners.click(); }
+  focus() { this.focused = true; }
+  select() { this.selected = true; }
+  click() { if (!this.disabled && this.listeners.click) return this.listeners.click(); }
 }
 
-function createQuiz() {
+function createQuiz(clipboard) {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
   const elements = new Map();
@@ -50,7 +51,11 @@ function createQuiz() {
   let randomCalls = 0;
   const math = Object.create(Math);
   math.random = () => { randomCalls++; return randomValue; };
-  const context = vm.createContext({ document, Math: math });
+  const context = vm.createContext({
+    document,
+    Math: math,
+    navigator: clipboard === undefined ? {} : { clipboard }
+  });
   vm.runInContext(script, context);
   return {
     get: (id) => document.getElementById(id),
@@ -58,6 +63,16 @@ function createQuiz() {
     setRandom: (value) => { randomValue = value; },
     randomCalls: () => randomCalls
   };
+}
+
+async function finishAttempt(quiz, correctCount) {
+  const byQuestion = new Map(quiz.questions.map((item) => [item.question, item]));
+  for (let i = 0; i < quiz.questions.length; i++) {
+    const item = byQuestion.get(quiz.get("question").textContent);
+    const selected = i < correctCount ? item.correct : (item.correct + 1) % item.answers.length;
+    quiz.get("answers").children[selected].click();
+    quiz.get("next").click();
+  }
 }
 
 test("each attempt has a fixed shuffled order with intact answers, feedback, and scoring", () => {
@@ -149,4 +164,41 @@ test("results review missed answers and a new perfect attempt clears the review"
   assert.equal(review.hidden, true);
   assert.equal(quiz.get("no-missed-questions").hidden, false);
   assert.ok(quiz.get("no-missed-questions").textContent.includes("there are no missed questions to review"));
+});
+
+test("copy result writes the current score and confirms success", async () => {
+  const copied = [];
+  const quiz = createQuiz({ writeText: async (text) => copied.push(text) });
+  await finishAttempt(quiz, 3);
+
+  await quiz.get("copy-result").click();
+  assert.deepEqual(copied, ["I scored 3 out of 10 on the Space Exploration Quiz!"]);
+  assert.equal(quiz.get("copy-status").textContent, "Result copied to clipboard.");
+  assert.equal(quiz.get("copy-fallback").hidden, true);
+
+  quiz.get("restart").click();
+  await finishAttempt(quiz, 8);
+  await quiz.get("copy-result").click();
+  assert.deepEqual(copied, [
+    "I scored 3 out of 10 on the Space Exploration Quiz!",
+    "I scored 8 out of 10 on the Space Exploration Quiz!"
+  ]);
+});
+
+test("copy result provides selectable text when clipboard access is unavailable or denied", async () => {
+  const clipboardOptions = [
+    undefined,
+    { writeText: async () => { throw new Error("Permission denied"); } }
+  ];
+
+  for (const clipboard of clipboardOptions) {
+    const quiz = createQuiz(clipboard);
+    await finishAttempt(quiz, 2);
+    await quiz.get("copy-result").click();
+
+    assert.match(quiz.get("copy-status").textContent, /copy it manually/);
+    assert.equal(quiz.get("copy-fallback").value, "I scored 2 out of 10 on the Space Exploration Quiz!");
+    assert.equal(quiz.get("copy-fallback").hidden, false);
+    assert.equal(quiz.get("copy-fallback").selected, true);
+  }
 });
