@@ -245,39 +245,49 @@
       { category: "Deep space", question: "Which spacecraft was the first to enter interstellar space?", answers: ["New Horizons", "Pioneer 10", "Cassini", "Voyager 1"], correct: 3, fact: "Voyager 1 crossed the heliopause in 2012, leaving the region dominated by the solar wind." },
       { category: "Eyes on the universe", question: "What type of light is the James Webb Space Telescope primarily designed to observe?", answers: ["Infrared", "Ultraviolet", "X-rays", "Radio waves"], correct: 0, fact: "Infrared observations let Webb peer through cosmic dust and study light from very early galaxies." },
       { category: "Destination Mars", question: "Which rover landed on Mars in 2021 with the Ingenuity helicopter?", answers: ["Opportunity", "Curiosity", "Perseverance", "Spirit"], correct: 2, fact: "Perseverance carried Ingenuity, which made the first powered, controlled flight on another planet." },
-      { category: "Beyond the blue", question: "What is a light-year a measure of?", answers: ["Time", "Distance", "A star's brightness", "The speed of a spacecraft"], correct: 1, fact: "A light-year is the distance light travels in one year: about 9.46 trillion kilometers." }
+      { category: "Beyond the blue", question: "What is a light-year a measure of?", answers: ["Time", "Distance", "A star's brightness", "The speed of a spacecraft"], correct: 1, fact: "A light-year is the distance light travels in one year: about 9.46 trillion kilometers." },
+      { category: "Trailblazers", question: "Who was the first woman to travel to space?", answers: ["Sally Ride", "Valentina Tereshkova", "Mae Jemison", "Eileen Collins"], correct: 1, fact: "Valentina Tereshkova orbited Earth aboard Vostok 6 in 1963." },
+      { category: "Lunar missions", question: "Which Apollo mission first landed humans on the Moon?", answers: ["Apollo 8", "Apollo 10", "Apollo 11", "Apollo 13"], correct: 2, fact: "Apollo 11 landed Neil Armstrong and Buzz Aldrin on the Moon in July 1969." },
+      { category: "Ocean worlds", question: "Which moon of Jupiter is thought to have an ocean beneath its icy surface?", answers: ["Europa", "Titan", "Triton", "Phobos"], correct: 0, fact: "Evidence suggests Europa has a salty ocean beneath its ice-covered surface." },
+      { category: "Our solar system", question: "Which planet is farthest from the Sun?", answers: ["Uranus", "Saturn", "Jupiter", "Neptune"], correct: 3, fact: "Neptune is the eighth planet from the Sun, orbiting beyond Uranus." },
+      { category: "Eyes on the universe", question: "Which telescope was launched into Earth orbit in 1990?", answers: ["James Webb", "Hubble", "Kepler", "Spitzer"], correct: 1, fact: "The Hubble Space Telescope was deployed by the space shuttle Discovery in 1990." },
+      { category: "Cosmic neighbors", question: "Which is Saturn's largest moon?", answers: ["Europa", "Ganymede", "Titan", "Io"], correct: 2, fact: "Titan has a thick atmosphere and lakes and seas of liquid methane and ethane." },
+      { category: "Solar explorers", question: "Which NASA spacecraft studies the Sun from closer than any previous spacecraft?", answers: ["Parker Solar Probe", "Voyager 2", "New Horizons", "Cassini"], correct: 0, fact: "Parker Solar Probe flies through the Sun's outer atmosphere, called the corona." },
+      { category: "Planetary giants", question: "What are Saturn's rings mainly made of?", answers: ["Liquid water", "Clouds of gas", "Molten rock", "Ice and rock"], correct: 3, fact: "Saturn's rings contain countless pieces of ice and rock, ranging greatly in size." },
+      { category: "Cosmic neighbors", question: "Which moon is the largest in our solar system?", answers: ["Earth's Moon", "Ganymede", "Titan", "Europa"], correct: 1, fact: "Jupiter's moon Ganymede is larger than the planet Mercury." },
+      { category: "Destination Mars", question: "What are the names of Mars's two moons?", answers: ["Io and Europa", "Titan and Enceladus", "Phobos and Deimos", "Triton and Nereid"], correct: 2, fact: "Phobos and Deimos are small, irregularly shaped moons that orbit Mars." }
     ];
     const $ = (id) => document.getElementById(id);
-    function shuffleQuestions() {
+    function selectQuestions() {
       const shuffled = [...questions];
       for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
-      return shuffled;
+      return shuffled.slice(0, 10);
     }
 
-    let attemptQuestions = shuffleQuestions();
+    let attemptQuestions = selectQuestions();
     let current = 0;
     let score = 0;
     let answered = false;
     let missedQuestions = [];
 
     function updateProgress(completed) {
-      $("progress-fill").style.width = `${completed / questions.length * 100}%`;
+      $("progress-fill").style.width = `${completed / attemptQuestions.length * 100}%`;
       $("progress").setAttribute("aria-valuenow", completed);
     }
 
     function renderQuestion(focus = false) {
       answered = false;
       const item = attemptQuestions[current];
-      $("question-count").innerHTML = `Question ${String(current + 1).padStart(2, "0")} <span>/ ${questions.length}</span>`;
+      $("question-count").innerHTML = `Question ${String(current + 1).padStart(2, "0")} <span>/ ${attemptQuestions.length}</span>`;
       $("category").textContent = item.category;
       $("question").textContent = item.question;
       $("feedback").hidden = true;
       $("feedback").textContent = "";
       $("next").disabled = true;
-      $("next-label").textContent = current === questions.length - 1 ? "See my results" : "Next question";
+      $("next-label").textContent = current === attemptQuestions.length - 1 ? "See my results" : "Next question";
       $("answers").replaceChildren();
       item.answers.forEach((text, index) => {
         const button = document.createElement("button");
@@ -348,9 +358,9 @@
       $("reaction").setAttribute("aria-label", rating.label);
       $("result-title").textContent = rating.title;
       $("result-message").textContent = rating.message;
-      $("result-score").innerHTML = `${score} <span>/ ${questions.length}</span>`;
-      $("correct-total").textContent = `${score} of ${questions.length}`;
-      $("accuracy").textContent = `${Math.round(score / questions.length * 100)}%`;
+      $("result-score").innerHTML = `${score} <span>/ ${attemptQuestions.length}</span>`;
+      $("correct-total").textContent = `${score} of ${attemptQuestions.length}`;
+      $("accuracy").textContent = `${Math.round(score / attemptQuestions.length * 100)}%`;
       const reviewList = $("missed-questions");
       reviewList.replaceChildren();
       missedQuestions.forEach((missed) => {
@@ -382,7 +392,7 @@
     }
 
     async function copyResult() {
-      const result = `I scored ${score} out of ${questions.length} on the Space Exploration Quiz!`;
+      const result = `I scored ${score} out of ${attemptQuestions.length} on the Space Exploration Quiz!`;
       const fallback = $("copy-fallback");
       fallback.hidden = true;
       try {
@@ -401,12 +411,12 @@
 
     $("next").addEventListener("click", () => {
       if (!answered) return;
-      if (current === questions.length - 1) showResults();
+      if (current === attemptQuestions.length - 1) showResults();
       else { current++; renderQuestion(true); }
     });
     $("copy-result").addEventListener("click", copyResult);
     $("restart").addEventListener("click", () => {
-      attemptQuestions = shuffleQuestions();
+      attemptQuestions = selectQuestions();
       current = 0;
       score = 0;
       missedQuestions = [];

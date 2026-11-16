@@ -4,6 +4,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
+const attemptSize = 10;
+
 class Element {
   constructor() {
     this.children = [];
@@ -67,7 +69,7 @@ function createQuiz(clipboard) {
 
 async function finishAttempt(quiz, correctCount) {
   const byQuestion = new Map(quiz.questions.map((item) => [item.question, item]));
-  for (let i = 0; i < quiz.questions.length; i++) {
+  for (let i = 0; i < attemptSize; i++) {
     const item = byQuestion.get(quiz.get("question").textContent);
     const selected = i < correctCount ? item.correct : (item.correct + 1) % item.answers.length;
     quiz.get("answers").children[selected].click();
@@ -75,7 +77,20 @@ async function finishAttempt(quiz, correctCount) {
   }
 }
 
-test("each attempt has a fixed shuffled order with intact answers, feedback, and scoring", () => {
+test("the question pool has 20 distinct, complete questions", () => {
+  const { questions } = createQuiz();
+  assert.equal(questions.length, 20);
+  assert.equal(new Set(questions.map((item) => item.question)).size, 20);
+  for (const item of questions) {
+    assert.ok(item.category && item.question && item.fact);
+    assert.equal(item.answers.length, 4);
+    assert.equal(new Set(item.answers).size, 4);
+    assert.ok(item.answers.every((answer) => typeof answer === "string" && answer.length > 0));
+    assert.ok(Number.isInteger(item.correct) && item.correct >= 0 && item.correct < 4);
+  }
+});
+
+test("each attempt selects 10 unique questions with intact answers, feedback, and scoring", () => {
   const quiz = createQuiz();
   const byQuestion = new Map(quiz.questions.map((item) => [item.question, item]));
   const initialCalls = quiz.randomCalls();
@@ -83,11 +98,13 @@ test("each attempt has a fixed shuffled order with intact answers, feedback, and
 
   function completeAttempt(correctCount) {
     const seen = [];
-    for (let i = 0; i < quiz.questions.length; i++) {
+    for (let i = 0; i < attemptSize; i++) {
       const question = quiz.get("question").textContent;
       const item = byQuestion.get(question);
       assert.ok(item);
       seen.push(question);
+      assert.equal(quiz.get("question-count").innerHTML, `Question ${String(i + 1).padStart(2, "0")} <span>/ 10</span>`);
+      assert.equal(quiz.get("next-label").textContent, i === attemptSize - 1 ? "See my results" : "Next question");
       assert.equal(quiz.get("category").textContent, item.category);
       assert.deepEqual(quiz.get("answers").children.map((button) => button.children[1].textContent), item.answers);
       assert.equal(quiz.get("next").disabled, true);
@@ -100,18 +117,19 @@ test("each attempt has a fixed shuffled order with intact answers, feedback, and
       ));
       assert.equal(quiz.get("score").textContent, `${Math.min(i + 1, correctCount)} ${Math.min(i + 1, correctCount) === 1 ? "point" : "points"}`);
       assert.equal(quiz.get("progress").attributes["aria-valuenow"], String(i + 1));
-      assert.equal(quiz.get("progress-fill").style.width, `${(i + 1) / quiz.questions.length * 100}%`);
+      assert.equal(quiz.get("progress-fill").style.width, `${(i + 1) / attemptSize * 100}%`);
       quiz.get("next").click();
     }
-    assert.equal(new Set(seen).size, quiz.questions.length);
-    assert.equal(quiz.get("correct-total").textContent, `${correctCount} of ${quiz.questions.length}`);
-    assert.equal(quiz.get("accuracy").textContent, `${correctCount / quiz.questions.length * 100}%`);
+    assert.equal(new Set(seen).size, attemptSize);
+    assert.equal(quiz.get("result-score").innerHTML, `${correctCount} <span>/ 10</span>`);
+    assert.equal(quiz.get("correct-total").textContent, `${correctCount} of 10`);
+    assert.equal(quiz.get("accuracy").textContent, `${correctCount / attemptSize * 100}%`);
     return seen;
   }
 
   const firstOrder = completeAttempt(5);
   assert.equal(quiz.randomCalls(), initialCalls);
-  assert.notDeepEqual(firstOrder, quiz.questions.map((item) => item.question));
+  assert.deepEqual(firstOrder, quiz.questions.slice(1, attemptSize + 1).map((item) => item.question));
 
   quiz.setRandom(0.999999);
   quiz.get("restart").click();
@@ -122,7 +140,8 @@ test("each attempt has a fixed shuffled order with intact answers, feedback, and
   const secondOrder = completeAttempt(10);
   assert.equal(quiz.randomCalls(), secondCalls);
   assert.notDeepEqual(secondOrder, firstOrder);
-  assert.deepEqual(secondOrder, quiz.questions.map((item) => item.question));
+  assert.deepEqual(secondOrder, quiz.questions.slice(0, attemptSize).map((item) => item.question));
+  assert.notDeepEqual(new Set(secondOrder), new Set(firstOrder));
 
   quiz.get("restart").click();
   assert.deepEqual(completeAttempt(0), secondOrder);
@@ -132,7 +151,7 @@ test("results review missed answers and a new perfect attempt clears the review"
   const quiz = createQuiz();
   const byQuestion = new Map(quiz.questions.map((item) => [item.question, item]));
 
-  for (let i = 0; i < quiz.questions.length; i++) {
+  for (let i = 0; i < attemptSize; i++) {
     const item = byQuestion.get(quiz.get("question").textContent);
     const selected = i < 2 ? (item.correct + 1) % item.answers.length : item.correct;
     quiz.get("answers").children[selected].click();
@@ -154,7 +173,7 @@ test("results review missed answers and a new perfect attempt clears the review"
   quiz.get("restart").click();
   assert.equal(review.children.length, 0);
 
-  for (let i = 0; i < quiz.questions.length; i++) {
+  for (let i = 0; i < attemptSize; i++) {
     const item = byQuestion.get(quiz.get("question").textContent);
     quiz.get("answers").children[item.correct].click();
     quiz.get("next").click();
