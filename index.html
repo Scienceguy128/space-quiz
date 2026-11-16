@@ -107,6 +107,13 @@
     .result-stats div + div { border-left: 1px solid var(--line); }
     .result-stats strong { display: block; font-size: 20px; }
     .result-stats small { color: var(--muted); font-size: 11px; }
+    .missed-review { text-align: left; margin-bottom: 24px; }
+    .missed-review h3 { font-size: 18px; margin: 0 0 12px; }
+    .missed-questions { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+    .missed-question { border: 1px solid var(--line); border-radius: 10px; background: var(--option); padding: 14px; }
+    .missed-question h4 { font-size: 14px; line-height: 1.5; margin: 0 0 9px; }
+    .missed-question p { margin: 4px 0 0; font-size: 12px; }
+    .missed-question .explanation { border-top: 1px solid var(--line); margin-top: 9px; padding-top: 9px; }
     .copy-fallback { width: 100%; min-height: 72px; resize: vertical; border: 1px solid var(--line); border-radius: 10px; padding: 10px; color: var(--text); background: var(--option); font: inherit; }
     .question-panel { animation: appear .3s ease; }
     @keyframes star-field-twinkle { from { opacity: .35; } to { opacity: .8; } }
@@ -212,6 +219,11 @@
           <div class="result-score" id="result-score"></div>
           <div class="result-label">Your mission score</div>
           <div class="result-stats"><div><strong id="correct-total"></strong><small>Correct answers</small></div><div><strong id="accuracy"></strong><small>Accuracy</small></div></div>
+          <section class="missed-review" aria-labelledby="missed-review-title">
+            <h3 id="missed-review-title">Questions to review</h3>
+            <p id="no-missed-questions" role="status" hidden></p>
+            <ol class="missed-questions" id="missed-questions"></ol>
+          </section>
           <button type="button" class="next" id="copy-result"><span>Copy result</span><span aria-hidden="true">&#10697;</span></button>
           <p id="copy-status" role="status" aria-live="polite"></p>
           <textarea id="copy-fallback" class="copy-fallback" aria-label="Quiz result to copy manually" readonly hidden></textarea>
@@ -249,6 +261,7 @@
     let current = 0;
     let score = 0;
     let answered = false;
+    let missedQuestions = [];
 
     function updateProgress(completed) {
       $("progress-fill").style.width = `${completed / questions.length * 100}%`;
@@ -289,6 +302,12 @@
       const item = attemptQuestions[current];
       const correct = selected === item.correct;
       if (correct) score++;
+      else missedQuestions.push({
+        question: item.question,
+        selected: item.answers[selected],
+        correct: item.answers[item.correct],
+        fact: item.fact
+      });
       $("score").textContent = `${score} ${score === 1 ? "point" : "points"}`;
       [...$("answers").children].forEach((button, index) => {
         button.disabled = true;
@@ -332,6 +351,33 @@
       $("result-score").innerHTML = `${score} <span>/ ${questions.length}</span>`;
       $("correct-total").textContent = `${score} of ${questions.length}`;
       $("accuracy").textContent = `${Math.round(score / questions.length * 100)}%`;
+      const reviewList = $("missed-questions");
+      reviewList.replaceChildren();
+      missedQuestions.forEach((missed) => {
+        const entry = document.createElement("li");
+        entry.className = "missed-question";
+        const question = document.createElement("h4");
+        question.textContent = missed.question;
+        const yourAnswer = document.createElement("p");
+        const yourAnswerLabel = document.createElement("strong");
+        yourAnswerLabel.textContent = "Your answer: ";
+        yourAnswer.append(yourAnswerLabel, document.createTextNode(missed.selected));
+        const correctAnswer = document.createElement("p");
+        const correctAnswerLabel = document.createElement("strong");
+        correctAnswerLabel.textContent = "Correct answer: ";
+        correctAnswer.append(correctAnswerLabel, document.createTextNode(missed.correct));
+        const explanation = document.createElement("p");
+        explanation.className = "explanation";
+        const explanationLabel = document.createElement("strong");
+        explanationLabel.textContent = "Explanation: ";
+        explanation.append(explanationLabel, document.createTextNode(missed.fact));
+        entry.append(question, yourAnswer, correctAnswer, explanation);
+        reviewList.append(entry);
+      });
+      const emptyReview = $("no-missed-questions");
+      emptyReview.textContent = "You got every question right—there are no missed questions to review.";
+      emptyReview.hidden = missedQuestions.length !== 0;
+      reviewList.hidden = missedQuestions.length === 0;
       $("result-title").focus({ preventScroll: true });
     }
 
@@ -363,6 +409,10 @@
       attemptQuestions = shuffleQuestions();
       current = 0;
       score = 0;
+      missedQuestions = [];
+      $("missed-questions").replaceChildren();
+      $("missed-questions").hidden = false;
+      $("no-missed-questions").hidden = true;
       $("score").textContent = "0 points";
       $("copy-status").textContent = "";
       $("copy-fallback").value = "";
