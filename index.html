@@ -232,6 +232,16 @@
       { category: "Beyond the blue", question: "What is a light-year a measure of?", answers: ["Time", "Distance", "A star's brightness", "The speed of a spacecraft"], correct: 1, fact: "A light-year is the distance light travels in one year: about 9.46 trillion kilometers." }
     ];
     const $ = (id) => document.getElementById(id);
+    function shuffleQuestions() {
+      const shuffled = [...questions];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+
+    let attemptQuestions = shuffleQuestions();
     let current = 0;
     let score = 0;
     let answered = false;
@@ -243,7 +253,7 @@
 
     function renderQuestion(focus = false) {
       answered = false;
-      const item = questions[current];
+      const item = attemptQuestions[current];
       $("question-count").innerHTML = `Question ${String(current + 1).padStart(2, "0")} <span>/ ${questions.length}</span>`;
       $("category").textContent = item.category;
       $("question").textContent = item.question;
@@ -272,7 +282,7 @@
     function selectAnswer(selected) {
       if (answered) return;
       answered = true;
-      const item = questions[current];
+      const item = attemptQuestions[current];
       const correct = selected === item.correct;
       if (correct) score++;
       $("score").textContent = `${score} ${score === 1 ? "point" : "points"}`;
@@ -327,6 +337,7 @@
       else { current++; renderQuestion(true); }
     });
     $("restart").addEventListener("click", () => {
+      attemptQuestions = shuffleQuestions();
       current = 0;
       score = 0;
       $("score").textContent = "0 points";
