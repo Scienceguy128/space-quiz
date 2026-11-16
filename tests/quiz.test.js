@@ -112,3 +112,41 @@ test("each attempt has a fixed shuffled order with intact answers, feedback, and
   quiz.get("restart").click();
   assert.deepEqual(completeAttempt(0), secondOrder);
 });
+
+test("results review missed answers and a new perfect attempt clears the review", () => {
+  const quiz = createQuiz();
+  const byQuestion = new Map(quiz.questions.map((item) => [item.question, item]));
+
+  for (let i = 0; i < quiz.questions.length; i++) {
+    const item = byQuestion.get(quiz.get("question").textContent);
+    const selected = i < 2 ? (item.correct + 1) % item.answers.length : item.correct;
+    quiz.get("answers").children[selected].click();
+    quiz.get("next").click();
+  }
+
+  const review = quiz.get("missed-questions");
+  assert.equal(review.children.length, 2);
+  assert.equal(review.hidden, false);
+  for (let i = 0; i < review.children.length; i++) {
+    const item = byQuestion.get(review.children[i].children[0].textContent);
+    assert.ok(item);
+    assert.ok(review.children[i].textContent.includes(`Your answer: ${item.answers[(item.correct + 1) % item.answers.length]}`));
+    assert.ok(review.children[i].textContent.includes(`Correct answer: ${item.answers[item.correct]}`));
+    assert.ok(review.children[i].textContent.includes(`Explanation: ${item.fact}`));
+  }
+  assert.equal(quiz.get("no-missed-questions").hidden, true);
+
+  quiz.get("restart").click();
+  assert.equal(review.children.length, 0);
+
+  for (let i = 0; i < quiz.questions.length; i++) {
+    const item = byQuestion.get(quiz.get("question").textContent);
+    quiz.get("answers").children[item.correct].click();
+    quiz.get("next").click();
+  }
+
+  assert.equal(review.children.length, 0);
+  assert.equal(review.hidden, true);
+  assert.equal(quiz.get("no-missed-questions").hidden, false);
+  assert.ok(quiz.get("no-missed-questions").textContent.includes("there are no missed questions to review"));
+});
