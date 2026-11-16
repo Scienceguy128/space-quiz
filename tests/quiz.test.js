@@ -6,6 +6,33 @@ const vm = require("node:vm");
 
 const attemptSize = 10;
 
+test("category labels meet normal-text contrast requirements in both themes", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  const light = html.match(/:root\s*\{([^}]+)\}/);
+  const dark = html.match(/@media\s*\(prefers-color-scheme:\s*dark\)\s*\{\s*:root\s*\{([^}]+)\}/);
+  const category = html.match(/\.category\s*\{([^}]+)\}/);
+  assert.ok(light && dark && category, "theme and category rules must exist");
+  assert.match(category[1], /(?:^|;)\s*color:\s*var\(--category-text\)/);
+  assert.match(category[1], /(?:^|;)\s*background:\s*var\(--soft\)/);
+
+  function luminance(hex) {
+    const channels = hex.match(/[0-9a-f]{2}/gi).map((part) => {
+      const value = parseInt(part, 16) / 255;
+      return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+  }
+
+  for (const [theme, rule] of [["light", light[1]], ["dark", dark[1]]]) {
+    const foreground = rule.match(/--category-text:\s*#([0-9a-f]{6})\b/i);
+    const background = rule.match(/--soft:\s*#([0-9a-f]{6})\b/i);
+    assert.ok(foreground && background, `${theme} category colors must be defined`);
+    const values = [luminance(foreground[1]), luminance(background[1])].sort((a, b) => b - a);
+    const contrast = (values[0] + 0.05) / (values[1] + 0.05);
+    assert.ok(contrast >= 4.5, `${theme} category contrast is ${contrast.toFixed(2)}:1`);
+  }
+});
+
 class Element {
   constructor() {
     this.children = [];

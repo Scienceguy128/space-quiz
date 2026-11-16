@@ -11,7 +11,7 @@
       font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color-scheme: light dark;
       --bg: #f6f5fb; --surface: #fff; --text: #25233c; --muted: #777589;
-      --line: #e9e7f1; --accent: #7560dc; --soft: #f1edfd; --option: #fcfbff;
+      --line: #e9e7f1; --accent: #7560dc; --soft: #f1edfd; --category-text: #1d4ed8; --option: #fcfbff;
       --green: #15764f; --green-bg: #eaf8ef; --red: #bd3b52; --red-bg: #fff0f2;
       --shadow: 0 12px 45px #30245606;
       --hero-muted: #625f74; --hero-accent: #604bb9;
@@ -67,7 +67,7 @@
     .progress { height: 5px; background: var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 22px; }
     .progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #a698f0, #7560dc); transition: width .45s ease; }
     .card { padding: 27px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); }
-    .category { display: inline-flex; gap: 6px; align-items: center; color: var(--accent); background: var(--soft); border-radius: 6px; padding: 3px 9px; font-size: 10px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; }
+    .category { display: inline-flex; gap: 6px; align-items: center; color: var(--category-text); background: var(--soft); border-radius: 6px; padding: 3px 9px; font-size: 10px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; }
     h2 { font-size: 23px; line-height: 1.4; letter-spacing: -.6px; margin: 14px 0 6px; font-weight: 700; }
     .hint { margin: 0 0 21px; color: var(--muted); font-size: 12px; }
     .answers { display: grid; gap: 10px; }
@@ -125,7 +125,7 @@
     @keyframes celebrate-launch { 0% { opacity: 0; transform: translateY(12px) scale(.8); } 60% { opacity: 1; transform: translateY(-8px) scale(1.1); } 100% { transform: translateY(0) scale(1); } }
     @keyframes appear { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
     @media (prefers-color-scheme: dark) {
-      :root { --bg: #14131f; --surface: #1d1b2b; --text: #efedf9; --muted: #a19cb8; --line: #343044; --accent: #ab97ff; --soft: #302940; --option: #211e30; --green: #85e0ab; --green-bg: #173c2c; --red: #ffa1b0; --red-bg: #46232f; --shadow: 0 12px 45px #00000012; --hero-muted: #bbb5cc; --hero-accent: #c6b8ff; --hero-grid: rgba(171, 151, 255, .07); --hero-glow: rgba(171, 151, 255, .12); --star-dim: rgba(187, 172, 245, .24); --star-bright: rgba(220, 210, 255, .4); }
+      :root { --bg: #14131f; --surface: #1d1b2b; --text: #efedf9; --muted: #a19cb8; --line: #343044; --accent: #ab97ff; --soft: #302940; --category-text: #ab97ff; --option: #211e30; --green: #85e0ab; --green-bg: #173c2c; --red: #ffa1b0; --red-bg: #46232f; --shadow: 0 12px 45px #00000012; --hero-muted: #bbb5cc; --hero-accent: #c6b8ff; --hero-grid: rgba(171, 151, 255, .07); --hero-glow: rgba(171, 151, 255, .12); --star-dim: rgba(187, 172, 245, .24); --star-bright: rgba(220, 210, 255, .4); }
       .next { color: #211934; }
     }
     @media (max-width: 420px) { .page { width: calc(100% - 28px); padding-top: 20px; } .card { padding: 21px; } .hero { margin: 16px 0 20px; } .hero-header { padding: 8px 12px; } .hero-copy { padding: 12px 14px 14px; } .mission-facts div { padding: 9px 12px; } .space-art { height: 104px; } h2 { font-size: 21px; } .edition { font-size: 9px; } }
